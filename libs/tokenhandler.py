@@ -20,8 +20,8 @@ class TokenHandler (StaticClass):
     Static class that stores the methods and info necessary for authenticating with the Spotify API.
     """
 
-    client_id    = "***REMOVED***"  # Spotify API client id
-    token_url    = "***REMOVED***"  # URL from which access tokens will be received (handled remotely to protect client secret)
+    client_id    = "{inject_client_id}"  # Spotify API client id
+    token_url    = "{inject_token_url}"  # URL from which access tokens will be received (handled remotely to protect client secret)
     auth_scope   = "user-read-currently-playing user-modify-playback-state"
     redirect_uri = "http://127.0.0.1:8551/callback"
 

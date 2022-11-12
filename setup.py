@@ -28,15 +28,15 @@ BUILD_PATH = pathlib.Path(BUILD_PATH).absolute()
 def insert_secrets():
     with open('secrets.json') as f:
         secrets = json.loads(f.read())
-    
+
     client_id = secrets['client_id']
     token_url = secrets['token_url']
 
     shutil.copy2('./libs/tokenhandler.py', './libs/tokenhandler.py.bak')
     with open('./libs/tokenhandler.py') as f:
         source = f.read()
-    
-    source = source.replace('{injected_client_id}', client_id).replace('{injected_token_url}', token_url)
+
+    source = source.replace('{injected_client_id}', client_id, 1).replace('{injected_token_url}', token_url, 1)
     with open('./libs/tokenhandler.py', 'w') as f:
         f.write(source)
 
