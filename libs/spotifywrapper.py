@@ -301,7 +301,7 @@ class SpotifyWrapper:
 
     # ====
     @staticmethod
-    def not_playing_backoff():
+    def not_playing_backoff() -> typing.Generator[int, None, None]:
         """
         Tracks the number of seconds to wait for before trying the next API call, which increases with time.
         This is handled internally, use get_backoff() and reset_backoff() to access it.
