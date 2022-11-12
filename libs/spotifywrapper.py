@@ -94,9 +94,10 @@ class SpotifyWrapper:
         self.current_track  = None
 
     # ====
-    def initialize_spotify_client(self) -> typing.Union[None, requests_oauthlib.OAuth2Session]:
+    def initialize_spotify_client(self) -> typing.Union[None, int, requests_oauthlib.OAuth2Session]:
         """
-        Refreshes the access token and returns either an OAuth instance or None if the refresh failed
+        Refreshes the access token and returns an OAuth instance on success, None if the refresh failed, or -1
+        if something went wrong with the OAuth server
 
         Side effect: initializes self.client (duh ;))
         """
@@ -105,6 +106,9 @@ class SpotifyWrapper:
 
         if access_token is None:
             return None
+
+        if access_token == -1:
+            return -1
 
         self.client = OAuthManager.build_oauth_session(self.client_id, access_token)
 
@@ -230,7 +234,7 @@ class SpotifyWrapper:
         access_token = TokenHandler.refresh_access_token()
 
         # Something went wrong during the oauth process
-        if access_token is None:
+        if access_token is None or access_token == -1:
             print('Could not establish OAuth session with Spotify; is your account connected?')
             return False
 
@@ -265,8 +269,8 @@ class SpotifyWrapper:
         access_token = TokenHandler.refresh_access_token()
 
         # Something went wrong during the oauth process
-        if access_token is None:
-            print('Could not establish oauth session; is your account connected?')
+        if access_token is None or access_token == -1:
+            print('Could not establish OAuth session with Spotify; is your account connected?')
             return False
 
         client = OAuthManager.build_oauth_session(client_id, access_token)

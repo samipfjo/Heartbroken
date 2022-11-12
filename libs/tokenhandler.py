@@ -1,7 +1,6 @@
 import json
 import multiprocessing
 import queue
-import sys
 import time
 import typing
 import webbrowser
@@ -39,7 +38,7 @@ class TokenHandler (StaticClass):
 
     # ========
     @staticmethod
-    def refresh_access_token() -> typing.Union[None, str]:
+    def refresh_access_token() -> typing.Union[None, str, int]:
         """
         Load an access token from its file and return it if it is not expired.
             If is are expired, request a new access token from the Heartbroken servers.
@@ -49,8 +48,7 @@ class TokenHandler (StaticClass):
 
         Returns None if the refresh token is missing from its file or the file is missing entirely
         Returns the access token on success
-
-        SIDE EFFECT: Can cause program to exit with error code 3!
+        Returns -1 on failure
         """
 
         try:
@@ -86,7 +84,7 @@ class TokenHandler (StaticClass):
             else:
                 print('FATAL: Something went wrong while getting a Spotify access token from the Heartbroken servers:')
                 print(f'HTTP {access_token_request.status_code}')
-                sys.exit(3)
+                return -1
 
         access_token_dict = access_token_request.json()
         access_token_dict['refresh_token'] = tokens['refresh_token']
@@ -129,9 +127,12 @@ class OAuthManager (StaticClass):
 
     # ========
     @staticmethod
-    def do_spotify_oauth() -> typing.Union[dict, None]:
+    def do_spotify_oauth() -> typing.Generator[typing.Union[multiprocessing.Process, None, dict], None, None]:
         """
         Run Spotify OAuth flow. Runs a temporary web server in a separate thread to receive the callback.
+        This function returns a generator that yields two values separately
+            1) The server process
+            2) Either None, indicating failure, or a dict containing all the access tokens
         """
 
         auth_code_params = {
@@ -145,25 +146,28 @@ class OAuthManager (StaticClass):
         server_process = multiprocessing.Process(target=OAuthManager._run_server, args=(auth_queue,))
         server_process.start()
 
+        yield server_process
+
         webbrowser.open_new(f"{OAuthManager.auth_url}?{urllib.parse.urlencode(auth_code_params)}")
 
+        # Wait for 60s
         attempt_count = 0
-        while attempt_count < 200:
+        while attempt_count < 120:
             try:
                 auth_code = auth_queue.get(timeout=.5)
                 break
             except queue.Empty:
                 pass
 
-        # We waited 100 seconds and got no requests
-        if attempt_count >= 200:
+        # We waited 60 seconds and got no requests
+        if attempt_count == 119:
             print('\n\nTimed out while waiting for OAuth callback from Spotify. Exiting.\n\n')
 
             # Clean up after OAuth server
             auth_queue.close()
             server_process.terminate()
 
-            return None
+            yield None
 
         # At this point we have an authorization code we can use to get the
         # refresh token and a fresh access token
@@ -176,7 +180,8 @@ class OAuthManager (StaticClass):
 
         refresh_token_request = requests.post(TokenHandler.token_url, json=data)
         if refresh_token_request.status_code != 200:
-            return None
+            print(f'Encountered error while connecting to the Heartbroken servers: HTTP {refresh_token_request.status_code} : {refresh_token_request.text})')
+            yield None
 
         # Clean up after OAuth server
         auth_queue.close()
@@ -185,7 +190,7 @@ class OAuthManager (StaticClass):
         refresh_token_dict = refresh_token_request.json()
         TokenHandler.save_credentials_to_file(refresh_token_dict)
 
-        return refresh_token_dict
+        yield refresh_token_dict
 
     # ========
     @staticmethod
@@ -205,7 +210,11 @@ class OAuthManager (StaticClass):
         """
 
         httpd = _QueuingHTTPServer(('127.0.0.1', 8551), _AuthRequestHandler, auth_queue)
-        httpd.serve_forever()
+
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            pass
 
 
 class _QueuingHTTPServer(http.server.HTTPServer):

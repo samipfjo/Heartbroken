@@ -2,7 +2,6 @@ import atexit
 import ctypes
 import multiprocessing
 import os
-import sys
 import time
 import typing
 
@@ -12,23 +11,31 @@ from libs.tokenhandler import TokenHandler, OAuthManager
 from libs.spotifywrapper import SpotifyWrapper
 
 
+TRAY_PROCESS         = None
+OAUTH_SERVER_PROCESS = None
+
 # ========
-def app_loop(app_loop_should_run: multiprocessing.Event, gui_process_terminated: multiprocessing.Event) -> None:
+def app_loop(app_loop_should_run: multiprocessing.Event, gui_process_terminated: multiprocessing.Event) -> int:
     """
     The main body of Heartbroken. Controls program initialization as well as the scheduling of calls to the
     Spotify API.
 
-    Can exit with error codes 1, 2 and 3
+    Returns exit codes 0, 1, or 2 
     """
 
     spotify = SpotifyWrapper()
 
     if spotify.initialize_spotify_client() is None:
         print('No account credentials found, running Spotify OAuth flow...')
+        global OAUTH_SERVER_PROCESS
 
-        if OAuthManager.do_spotify_oauth() is None:
+        oauth_handler_generator = OAuthManager.do_spotify_oauth()
+        OAUTH_SERVER_PROCESS    = next(oauth_handler_generator)
+        oauth_result            = next(oauth_handler_generator)
+
+        if oauth_result is None:
             print('\nSomething went wrong while trying to connect your account. Please run Heartbroken again.\n')
-            sys.exit(1)
+            return 1
 
         spotify.initialize_spotify_client()
 
@@ -38,14 +45,14 @@ def app_loop(app_loop_should_run: multiprocessing.Event, gui_process_terminated:
 
     while True:
         if gui_process_terminated.is_set():
-            break
+            return 0
 
         app_loop_should_run.wait()
 
         if TokenHandler.is_token_expired():
             if spotify.initialize_spotify_client() is None:
                 print('\nSomething went wrong while trying to connect your account. Please run Heartbroken again.\n')
-                sys.exit(2)
+                return 2
 
         # Nothing is playing or a network error was encountered
         if hbcontrol.skip_if_heartbroken(spotify) is None:
@@ -155,24 +162,26 @@ def gui_runner(app_loop_should_run: multiprocessing.Event, gui_process_terminate
         tray.destroy()
 
 # ========
-def main() -> None:
+def main() -> int:
     print('~ HEARTBROKEN FOR SPOTIFY ~\n')
 
+    global TRAY_PROCESS
+
     if HeartbrokenDatabase.maybe_create_table() == False:
-        sys.exit(3)
+        return 3
 
     # Set == running
     app_loop_should_run = multiprocessing.Event()
     app_loop_should_run.set()
 
-    gui_process_terminated = multiprocessing.Event()
+    tray_process_terminated = multiprocessing.Event()
 
-    gui_process = multiprocessing.Process(target=gui_runner,
-                                          args=(app_loop_should_run, gui_process_terminated))
-    gui_process.start()
-    atexit.register(gui_process.terminate)
+    TRAY_PROCESS = multiprocessing.Process(target=gui_runner,
+                                           args=(app_loop_should_run, tray_process_terminated))
+    TRAY_PROCESS.start()
+    atexit.register(TRAY_PROCESS.terminate)
 
-    app_loop(app_loop_should_run, gui_process_terminated)
+    return app_loop(app_loop_should_run, tray_process_terminated)
 
 # ====
 if __name__ == '__main__':
@@ -180,9 +189,8 @@ if __name__ == '__main__':
 
     try:
         toggle_console_visibility(forced_visibility_state=False)
-        main()
+        exit_code = main()
         print('\nThanks for using Heartbroken!\n')
-        sys.exit()
 
     except KeyboardInterrupt:
         print('\nThanks for using Heartbroken!\n')
@@ -191,3 +199,11 @@ if __name__ == '__main__':
     except Exception as ex:
         print('\n\n!!! HEARTBROKEN ENCOUNTERED A FATAL ERROR: !!!\n')
         raise
+
+    finally:
+        # Ensure processes get cleaned up
+        if TRAY_PROCESS is not None and TRAY_PROCESS.is_alive():
+            TRAY_PROCESS.terminate()
+
+        if OAUTH_SERVER_PROCESS is not None and OAUTH_SERVER_PROCESS.is_alive():
+            OAUTH_SERVER_PROCESS.terminate()
