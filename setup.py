@@ -89,11 +89,6 @@ def copy_requirements():
             print('WARN: Could not find VCRUNTIME140.dll in build/heartbroken_win/lib')
 
 
-def cleanup_jre_junk():
-    for jre_dll in glob.glob('./build/heartbroken_win/lib/api-ms-win-*'):
-        os.remove(jre_dll)
-
-
 if __name__ == '__main__':
     # Cleanup .pyc caches
     for path in glob.glob('./**/__pycache__', recursive=True):
@@ -149,6 +144,9 @@ if __name__ == '__main__':
                 'tkinter', 'cProfile', 'profile', 'pdb', 'pydoc', 'doctest', 'cryptography', #'cryptography.hazmat.bindings._openssl', 'cryptography.hazmat.bindings._rust',
                 'Cython', 'zodbpickle', 'lib2to3', 'unittest', 'asyncio', 'jinja2', 'ctypes.test'
             ],
+
+            # cx_freeze includes JRE DLLs for unknown reasons
+            'bin_excludes': glob.glob('C:/Program Files/Eclipse Adoptium/**/*.dll', recursive=True),
 
             'zip_include_packages': '*',
             'zip_exclude_packages': [ ],
@@ -215,7 +213,5 @@ if __name__ == '__main__':
     cython_setup.cleanup_pyd()
 
     restore_nosecrets_file()
-
-    cleanup_jre_junk()
 
     print(f'\nBuild of Heartbroken completed at {datetime.datetime.now().strftime("%I:%M%p on %m/%d (%A)")}')
