@@ -26,24 +26,33 @@ BUILD_PATH = pathlib.Path(BUILD_PATH).absolute()
 
 
 def insert_secrets():
+    print('Injecting secrets...')
+
     with open('secrets.json') as f:
         secrets = json.loads(f.read())
 
     client_id = secrets['client_id']
     token_url = secrets['token_url']
 
-    shutil.copy2('./libs/tokenhandler.py', './libs/tokenhandler.py.bak')
+    shutil.copy2('./libs/tokenhandler.py', './libs/tokenhandler.bak')
     with open('./libs/tokenhandler.py') as f:
         source = f.read()
 
-    source = source.replace('{injected_client_id}', client_id, 1).replace('{injected_token_url}', token_url, 1)
+    os.remove('./libs/tokenhandler.py')
+
+    source = source.replace('{inject_client_id}', client_id, 1).replace('{inject_token_url}', token_url, 1)
     with open('./libs/tokenhandler.py', 'w') as f:
         f.write(source)
 
+    print('Secrets injected')
+
 
 def restore_nosecrets_file():
+    print('Removing secrets...')
     os.remove('./libs/tokenhandler.py')
-    shutil.copy2('./libs/tokenhandler.py.bak', './libs/tokenhandler.py')
+    shutil.copy2('./libs/tokenhandler.bak', './libs/tokenhandler.py')
+    os.remove('./libs/tokenhandler.bak')
+    print('Secrets removed')
 
 
 def cythonize_heartbroken(target_packages):
@@ -89,7 +98,7 @@ def copy_requirements():
             print('WARN: Could not find VCRUNTIME140.dll in build/heartbroken_win/lib')
 
 
-if __name__ == '__main__':
+def main():
     # Cleanup .pyc caches
     for path in glob.glob('./**/__pycache__', recursive=True):
         path = os.path.abspath(path)
@@ -174,7 +183,7 @@ if __name__ == '__main__':
         print('\n=====\nBuilding Heartbroken...\n')
         setup(name='Heartbroken',
               version='2.0.0',
-              description='Dislike for Spotify',
+              description='Heartbroken - Dislike for Spotify',
               options=build_options,
               executables=executables
         )
@@ -209,9 +218,17 @@ if __name__ == '__main__':
     copy_requirements()
 
     # ----
-    # Clean up .pyd/.so's alongside .py's leftover from build
+    
     cython_setup.cleanup_pyd()
 
-    restore_nosecrets_file()
-
     print(f'\nBuild of Heartbroken completed at {datetime.datetime.now().strftime("%I:%M%p on %m/%d (%A)")}')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as ex:
+        raise
+    finally:
+        cython_setup.cleanup_pyd()  # Clean up .pyd/.so's alongside .py's leftover from build
+        restore_nosecrets_file()    # Replace real keys with placeholders
