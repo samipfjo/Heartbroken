@@ -44,13 +44,14 @@ def skip_if_heartbroken(spotify: SpotifyWrapper) -> typing.Union[None, bool]:
              'album':  current_track.album,
              'artist': current_track.artists
             }[what_heartbroken]
-        ))
+        ) + f' ({current_track.url})')
 
+        prev_track = current_track
         tracks_skipped.add(current_track.id)
 
         next_track = spotify.skip_current_track()
         if next_track == -1:
-            print(f'Something went wrong while skipping disliked {what_heartbroken}')
+            print(f'Something went wrong while skipping disliked {what_heartbroken} ({prev_track.url}')
             return None
 
         elif next_track is None:
@@ -100,11 +101,11 @@ def handle_heartbreak(track:  bool = False, artist: bool = False, album:  bool =
         print(f'Sorry, something went wrong while disliking the {item_type}')
         return
 
-    print(f'Sucessfully disliked {item_type}, skipping...')
+    print(f'Sucessfully disliked {item_type}, skipping... ({current_track.url}')
 
     api_success = SpotifyWrapper.skip_current_track_static(TokenHandler.client_id)
     if not api_success:
-        print(f'Sorry, something went wrong while skipping the current {item_type}')
+        print(f'Sorry, something went wrong while skipping the current {item_type} ({current_track.url}')
 
 # ========
 def handle_clear_heartbreak(track: bool = False, artist: bool = False, album:  bool = False) -> None:
@@ -141,4 +142,4 @@ def handle_clear_heartbreak(track: bool = False, artist: bool = False, album:  b
     if db_success:
         print(f'Sucessfully un-disliked {item_type}')
     else:
-        print(f'Sorry, something went wrong while un-disliking the {item_type}')
+        print(f'Sorry, something went wrong while un-disliking the {item_type} ({current_track.url})')

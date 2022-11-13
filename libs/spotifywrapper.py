@@ -22,6 +22,7 @@ class Track:
             self._time_remaining_ms = -1
             self.name = None
             self.id = None
+            self.url = None
             self.type = None
             self.album = None
             self.album_id = None
@@ -34,6 +35,7 @@ class Track:
 
             self.name       = self._track_data.get('name', None)
             self.id         = self._track_data.get('id',   None)
+            self.url        = None if self.id is None else f'https://open.spotify.com/track/{self.id}' 
             self.type       = self._track_data.get('currently_playing_type', None)  # track, episode, ad, unknown
             self.album      = utils._deep_get(self._track_data, ('album', 'name'), None)
             self.album_id   = utils._deep_get(self._track_data, ('album', 'id'),   None)
@@ -51,13 +53,13 @@ class Track:
     def __str__(self) -> str:
         if not self.is_playing:
             return 'Nothing is currently being played'
-        return f'"{self.name}" by "{self.artists}"'
+        return f'"{self.name}" by "{self.artists}" ({self.url})'
 
     # ====
     def __repr__(self) -> str:
         if not self.is_playing:
             return 'None'
-        return f'"{self.name}" by "{self.artists}" - track ID {self.id}'
+        return f'"{self.name}" by "{self.artists}" ({self.url})'
 
     # ========
     @staticmethod
