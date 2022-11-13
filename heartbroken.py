@@ -58,6 +58,7 @@ def app_loop(app_loop_should_run: multiprocessing.Event, gui_process_terminated:
         if hbcontrol.skip_if_heartbroken(spotify) is None:
             if not spotify.backing_off:
                 print('\nNothing is currently playing, waiting (ctrl+c to exit)...')
+                last_logged_track = None
 
             time.sleep(spotify.get_backoff())
 
