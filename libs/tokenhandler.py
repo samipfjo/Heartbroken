@@ -67,7 +67,7 @@ class TokenHandler (StaticClass):
         print('Access token expired, acquiring new token...')
 
         data = {
-            'auth_key':      '***REMOVED***',
+            'auth_key':      '{inject_auth_key}',
             'refresh_token': tokens['refresh_token']
         }
 
@@ -175,7 +175,7 @@ class OAuthManager (StaticClass):
             'grant_type'    : 'authorization_code',
             'oauth_code'    : auth_code,          # The auth code we got from the OAuth flow
             'refresh_token' : None,               # We don't have this yet; becomes null in json
-            'auth_key'      : '***REMOVED***'  # Internal auth key
+            'auth_key'      : '{inject_auth_key}' # Internal auth key
         }
 
         refresh_token_request = requests.post(TokenHandler.token_url, json=data)

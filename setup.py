@@ -33,6 +33,7 @@ def insert_secrets():
 
     client_id = secrets['client_id']
     token_url = secrets['token_url']
+    auth_key  = secrets['auth_key']
 
     shutil.copy2('./libs/tokenhandler.py', './libs/tokenhandler.bak')
     with open('./libs/tokenhandler.py') as f:
@@ -40,7 +41,10 @@ def insert_secrets():
 
     os.remove('./libs/tokenhandler.py')
 
-    source = source.replace('{inject_client_id}', client_id, 1).replace('{inject_token_url}', token_url, 1)
+    source = source.replace('{inject_client_id}', client_id)\
+                   .replace('{inject_token_url}', token_url)\
+                   .replace('{inject_auth_key}',  auth_key)
+
     with open('./libs/tokenhandler.py', 'w') as f:
         f.write(source)
 
