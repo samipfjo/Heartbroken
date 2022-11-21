@@ -29,11 +29,11 @@
 
 1) Create a new project on the Spotify developer hub 
 1) Install Python >= v3.8
-2) `pip install requirements.txt`
-3) `pip install requirements-dev.txt`
-4) Create a file called `secrets.json`, filling in your Spotify developer credentials: `{"client_id": "...", "token_url": "http(s)://...", "auth_key"=""}` (`auth_key` can be left empty)
-6) `python setup.py build`
-7) If everything went well, the full built program will be at `./build/heartbroken_win/`
+2) `pip install requirements-dev.txt`
+3) Create a file called `secrets.json`, filling in your Spotify developer credentials: `{"client_id": "...", "token_url": "http(s)://...", "auth_key"=""}` (`auth_key` can be left empty)
+4) `python setup.py build`  
+
+If everything went well, the full built program will be at `./build/heartbroken_win/`
 
 <br>
 
