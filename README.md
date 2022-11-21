@@ -10,13 +10,46 @@
 
 ----
 
-How this project protects your data:  
+### How this project protects your data:
+
 - All of your data is stored locally; neither the author nor anyone else will have access to it without you giving it to them. 
 - The only external contact made by the app (other than to Spotify) is a call to the project's access token generator in the cloud and is completely unavoidable due to the nature of OAuth. The bare minimum amount of data is sent to facilitate that transaction - only the codes needed to generate the access token.
 - Expanding on the above, there is zero tracking or analytics code included, and there will never be any. The author will fight to the death for your privacy.
 
 ----
 
-FAQ:
+### FAQ:
+
 - Can you add this into the Spotify client itself?
   - Unfortunately, modifying the Spotify client is a _heavy_ violation of the Spotify Terms of Service. Doing so would risk getting peoples' accounts banned, and I'm not willing to do that for obvious reasons.
+
+----
+
+### Instructions for building from source
+
+1) Create a new project on the Spotify developer hub 
+1) Install Python >= v3.8
+2) `pip install requirements.txt`
+3) `pip install requirements-dev.txt`
+4) Create a file called `secrets.json`, filling in your Spotify developer credentials: `{"client_id": "...", "token_url": "http(s)://...", "auth_key"=""}` (`auth_key` can be left empty)
+6) `python setup.py build`
+7) If everything went well, the full built program will be at `./build/heartbroken_win/`
+
+<br>
+
+You will need to provide a server that responds to a request at `token_url` that can handle the following:
+
+```
+POST to <token_url>  
+  Request:
+    Type: json  
+    Body: {"refresh_token": <string>, "auth_key": ""}
+
+  <server requests access token from Spotify API>
+
+  Response:
+    Type: json
+    Body: {"access_token": <string>, "expires_in": <int>}
+```
+
+Providing a local server for contributors to do testing with is on my to-do list.
